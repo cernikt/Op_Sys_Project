@@ -158,8 +158,9 @@ static void exitTask(int taskId)
     Semaphore *s = tcb[taskId].event;
 
     if (s) {
-        int tid = deQueue(&s->blocked_q);
-        enQueue(&pq, tid);
+        //int tid = deQueue(&s->blocked_q);
+        del_task(&s->blocked_q, taskId);
+        enQueue(&pq, taskId);
     }
 
     tcb[taskId].state = S_EXIT; // EXIT task state

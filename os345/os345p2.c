@@ -168,7 +168,7 @@ int P2_listTasks(int argc, char *argv[])
 
 
 
-        for (i = 0; i < MAX_TASKS; i++)
+    for (i = 0; i < MAX_TASKS; i++)
     {
         if (tcb[i].name)
         {

@@ -36,6 +36,9 @@ extern Semaphore *fillSeat[NUM_CARS];   // (signal) seat ready to fill
 extern Semaphore *seatFilled[NUM_CARS]; // (wait) passenger seated
 extern Semaphore *rideOver[NUM_CARS];   // (signal) ride over
 
+Semaphore *roomInPark;
+Semaphore *tickets;
+
 // ***********************************************************************
 // project 3 functions and tasks
 void CL3_project3(int, char **);
@@ -49,6 +52,9 @@ int P3_main(int argc, char *argv[])
     char buf[32];
     char *newArgv[2];
     parkMutex = NULL;
+
+    roomInPark = createSemaphore("roomInPark", 1, MAX_IN_PARK);
+    tickets = createSemaphore("tickets", 1, MAX_TICKETS);
 
     // start park
     sprintf(buf, "jurassicPark");
@@ -65,9 +71,124 @@ int P3_main(int argc, char *argv[])
     printf("\nStart Jurassic Park...");
 
     //?? create car, driver, and visitor tasks here
+    for (int i = 0; i< NUM_VISITORS; i++) {
+        sprintf(buf, "visitor %d", i);
+        newArgv[0] = buf;
+        createTask(buf,          // task name
+                   visitorTask, // task
+                   MED_PRIORITY, // task priority
+                   1,            // task count
+                   newArgv);     // task argument
+    }
 
     return 0;
 } // end project3
+
+
+int workerTask(int argc, char *argv[]) {
+    do 
+    {
+        // SEM_WAIT(workerNeeded);
+        // if(needTicket->state) 
+        // {
+        //     // only 1 worker can sell tickets at a time
+        //     // update park vars to show that I am in the ticket booth
+        //     // wait for random amount of time to print ticket
+        //     SEM_SIGNAL(ticketReady);
+        //     SEM_WAIT(ticketBought);
+        //     // update park to show that I am sleeping
+
+        // }
+        // else if (//need driver
+        // ) {
+
+        // }
+    }
+    while(myPark.numExitedPark < MAX_IN_PARK);
+    return 0;
+}
+
+
+int visitorTask(int argc, char *argv[]) {
+    SWAP
+    // Arrive at park
+    SEM_WAIT(parkMutex);
+    {
+        SWAP myPark.numOutsidePark++;
+    }
+    SWAP SEM_SIGNAL(parkMutex);
+
+    // visitors wait for random time and try to enter park
+    SWAP SEM_WAIT(roomInPark);
+    {
+        SWAP SEM_WAIT(parkMutex);
+        {
+            SWAP myPark.numOutsidePark--;
+            SWAP myPark.numInPark++;
+            SWAP myPark.numInTicketLine++;
+        }
+        SWAP SEM_SIGNAL(parkMutex);
+
+        //wait, then buy a ticket
+
+        SWAP SEM_WAIT(tickets);
+        {
+            // signal needTicket
+            // signal needDriver
+            // wait for driver to sell ticket
+            // signal ticketBought
+            // SWAP SEM_SIGNAL(needTicket);
+            // SWAP SEM_SIGNAL(needWorker);
+            // SWAP SEM_WAIT(ticketReady);
+            // SWAP SEM_SIGNAL(ticketBought);
+
+            SWAP SEM_SIGNAL(parkMutex);
+            {
+                SWAP myPark.numInTicketLine--;
+                SWAP myPark.numInMuseumLine++;
+                SWAP myPark.numInMuseumLine++;
+            }
+            SWAP SEM_SIGNAL(parkMutex);
+            // get out of ticket line and get into museum line
+            // wait for random amount of time
+            // try to get in museum
+            // wait for time in museum
+            // exit museum and get into car line
+            // wait for random amount of time in car line
+            // try to get in car
+            // get in car
+        }
+        SWAP SEM_SIGNAL(tickets);
+
+        SWAP SEM_SIGNAL(tickets);
+        {
+            
+            // wit for car ride to finish
+            // get in gift shop line
+            // wait for random amount of time in gift shop line
+            // try to get in gift shop
+            // wait for random amount of time in gift shop
+            // exit gift shop
+            // get in exit line
+            // wait for random amount of time in exit line
+        }
+
+        // Leave park
+
+        SWAP SEM_WAIT(parkMutex);
+        {
+            SWAP myPark.numInPark--;
+            SWAP myPark.numExitedPark++;
+        }
+        SWAP SEM_SIGNAL(parkMutex);
+    }
+    SWAP SEM_SIGNAL(roomInPark);
+
+    
+
+
+    return 0;
+}
 
 // ***********************************************************************
 // ***********************************************************************

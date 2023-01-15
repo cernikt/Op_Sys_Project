@@ -59,25 +59,29 @@ void semSignal(Semaphore *s)
         // binary semaphore
         // look through tasks for one suspended on this semaphore
         //s->state = 1;
+        //assert("semSignal Error" && tcb[tid].event == s);
+
 
         tid = deQueue(&s->blocked_q);
 
         if(tid >= 0) {
-            assert("semSignal Error" && tcb[tid].event == s);
 
-            s->state = 0;
+            //s->state = 0;
             tcb[tid].event = 0;
             tcb[tid].state = S_READY;
 
             enQueue(&pq, tid);
-
-            if (!superMode) {
-                swapTask();
-            }
-
-            return;
-
+        } else {
+            s->state = 1;
         }
+
+        if (!superMode) {
+            swapTask();
+        }
+
+        return;
+
+        
         //printf("in semSignal binary sephamore for loop if statement\n");
         //printf("set sem state to 0\n");
 
@@ -90,24 +94,31 @@ void semSignal(Semaphore *s)
         //printf("moved task from blocked to ready queue\n");
         
         // nothing waiting on semaphore, go ahead and just signal
-        s->state = 1; // nothing waiting, signal
-        if (!superMode)
-            swapTask();
-        return;
+
     }
     else
     {
         // counting semaphore
         // ?? implement counting semaphore
-        s->state++;
-        if(s->state > 0) {
-            return;
+        tid = deQueue(&s->blocked_q);
+
+
+
+        if(tid >= 0) {
+
+            //s->state = 0;
+            tcb[tid].event = 0;
+            tcb[tid].state = S_READY;
+
+            enQueue(&pq, tid);
+        } else {
+            s->state++;
         }
 
-        tid = deQueue(&s->blocked_q);
-        tcb[tid].event = 0;
-        tcb[tid].state = S_READY;
-        enQueue(&pq, tid);
+        
+        if (!superMode) {
+            swapTask();
+        }
 
         return;
     }
@@ -162,18 +173,20 @@ int semWait(Semaphore *s)
     {
         // counting semaphore
         // ?? implement counting semaphore
-        s->state--;
-        if(s->state >= 0) {
-            return 0;
+        
+        if(s->state == 0) {
+            //tid = deQueue(&pq);
+            tcb[curTask].event = s;
+            tcb[curTask].state = S_BLOCKED;
+            enQueue(&s->blocked_q, curTask);
+            return 1;
         }
+        s->state--;
 
-        tid = deQueue(&pq);
-        tcb[curTask].event = s;
-        tcb[curTask].state = S_BLOCKED;
-        enQueue(&s->blocked_q, curTask);
+        
 
         swapTask();
-        return 1;
+        return 0;
     }
 } // end semWait
 
