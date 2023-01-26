@@ -104,11 +104,31 @@ typedef struct semaphore // semaphore
     PriorityQueue blocked_q;  // blocked task queue
 } Semaphore;
 
+typedef struct DeltaTask
+{
+    int tics;
+    Semaphore* sem;
+    struct DeltaTask* next;
+} DeltaTask;
+
+// const PqTask emptyTask;
+
+typedef struct DeltaClock
+{
+    DeltaTask* head;
+} DeltaClock;
+
 int enQueue(PriorityQueue*, TID);
 int deQueue(PriorityQueue*);
 void printQueue(PriorityQueue*);
 int del_task(PriorityQueue*, TID);
 int timeTask(int, char **);
+
+void deleteDeltaClock();
+void printClock();
+void enQueueDC(int tics, Semaphore* event);
+void ticDown();
+
 
 // task control block
 typedef struct // task control block

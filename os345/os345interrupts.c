@@ -61,6 +61,8 @@ extern int lastPollClock; // last pollClock
 
 extern int superMode; // system mode
 extern TCB tcb[]; // task control block
+extern DeltaClock dc;
+
 
 // **********************************************************************
 // **********************************************************************
@@ -209,6 +211,7 @@ static void timer_isr()
     {
         myOldClkTime = myOldClkTime + ONE_TENTH_SEC; // update old
         semSignal(tics10thsec);
+        ticDown(&dc); // decrement delta clock
     }
 
     // ?? add other timer sampling/signaling code here for project 2

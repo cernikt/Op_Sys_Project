@@ -59,6 +59,8 @@ Semaphore *tics10sec;    // 10 second semaphore
 
 Semaphore *tics10thsec; // 1/10 second semaphore
 
+Semaphore *deltaClockMutex; // delta clock mutex
+
 // **********************************************************************
 // **********************************************************************
 // global system variables
@@ -85,9 +87,11 @@ bool diskMounted;  // disk has been mounted
 
 time_t oldTime1; // old 1sec time
 time_t oldTime10; // old 1sec time
+time_t oldTime10th; // old 1/10sec time
 clock_t myClkTime;
 clock_t myOldClkTime;
 PriorityQueue pq;
+DeltaClock dc;
 
 
 // **********************************************************************
@@ -147,6 +151,7 @@ int main(int argc, char *argv[])
     tics1sec = createSemaphore("tics1sec", BINARY, 0);
     tics10sec = createSemaphore("tics10sec", BINARY, 0);
     tics10thsec = createSemaphore("tics10thsec", BINARY, 0);
+    deltaClockMutex = createSemaphore("deltaClockMutex", BINARY, 1);
 
     //printf("created semaphores\n");
 
@@ -393,7 +398,6 @@ static int initOS()
 
     //printf("starting os init\n");
 
-
     // capture current time
     lastPollClock = clock(); // last pollClock
     time(&oldTime1);
@@ -420,6 +424,7 @@ static int initOS()
 
     // ?? initialize all execution queues
     pq.head = NULL;
+    dc.head = NULL;
 
     //printf("\nInitialized OS");
 
@@ -451,6 +456,8 @@ void powerDown(int code)
     while (pq.head) {
         deQueue(&pq);
     }
+
+    deleteDeltaClock();
 
     //free(&pq);
 
@@ -539,4 +546,88 @@ int del_task(PriorityQueue* priority_q, TID tid) {
     }
     
     return -1;
+}
+
+void deleteDeltaClock() {
+
+	DeltaTask* cur = dc.head;
+	DeltaTask* temp;
+
+	while (cur) {
+		temp = cur;
+		cur = cur->next;
+		free(temp);
+	}
+
+}
+
+void printClock() {
+    SWAP printf("**");
+
+	SWAP DeltaTask* cur = dc.head;
+	
+	while (cur) {
+		SWAP printf("{%d} ", cur->tics);
+		SWAP cur = cur->next;
+	}
+	
+	SWAP printf("**\n");
+}
+
+void enQueueDC(int tics, Semaphore* event) {
+    assert("Invalid tic count" && tics > 0);
+	semWait(deltaClockMutex);
+	SWAP DeltaTask* item = (DeltaTask*) malloc(sizeof(DeltaTask));
+	SWAP item->sem = event;
+	SWAP item->next = NULL;
+
+	if (!dc.head) {
+		SWAP item->tics = tics;
+		SWAP dc.head = item;
+	}
+	else if (tics < dc.head->tics) {
+		SWAP item->tics = tics;
+		SWAP dc.head->tics -= tics;
+		SWAP item->next = dc.head;
+		SWAP dc.head = item;
+	}
+	else {
+		SWAP int diff = tics - dc.head->tics;
+		SWAP DeltaTask* prev = dc.head;
+		DeltaTask* cur = dc.head->next;
+
+		while (1) {
+			if (!cur) {
+				SWAP prev->next = item;
+				SWAP item->tics = diff;
+				SWAP break;
+			}
+
+			SWAP diff -= cur->tics;
+
+			if (diff < 0) {
+				SWAP item->tics = diff + cur->tics;
+				SWAP cur->tics = -diff;
+				SWAP item->next = cur;
+				SWAP prev->next = item;
+				SWAP break;
+			}
+
+			SWAP prev = prev->next;
+			SWAP cur = cur->next;
+		}
+	}
+	semSignal(deltaClockMutex);
+}
+
+void ticDown() {
+    if (dc.head) {
+		dc.head->tics--;
+		while (dc.head && dc.head->tics == 0) {
+			semSignal(dc.head->sem);
+			DeltaTask* temp = dc.head;
+			dc.head = dc.head->next;
+			free(temp);
+		}
+	}
 }
