@@ -48,7 +48,6 @@ int carTask(int argc, char* argv[]);
 int visitorTask(int argc, char* argv[]);
 int driverTask(int argc, char* argv[]);
 void waitTime(int maximum, Semaphore* sem);
-void passDriverWaitSem(Semaphore* sem, int driverId);
 
 // ***********************************************************************
 // semaphores
@@ -340,7 +339,6 @@ int visitorTask(int argc, char* argv[])
     }
     SWAP semSignal(parkMutex); 
 
-    //SWAP waitForTourExperience(visitorWait);
 
     // wait random amount of time to get on car
     SWAP waitTime(30, visitorWait);
@@ -365,21 +363,32 @@ int visitorTask(int argc, char* argv[])
 
     SWAP semSignal(passengerResourceReady); 
     SWAP semWait(passengerResourceAcquired);
-
+    // obtaied, release resource mutex
     SWAP semSignal(resourceMutex);
 
     SWAP semWait(visitorWait);
 
-    // enter gift shop line
+    // look at photos from car ride
     SWAP semWait(parkMutex);       
     {
         SWAP myPark.numInCars--;    
-        SWAP myPark.numInGiftLine++;
+        SWAP myPark.numInPhotosBuilding++;
 
         // return ticket
         SWAP myPark.numTicketsAvailable++;
 
         SWAP semSignal(tickets);
+    }
+    SWAP SEM_SIGNAL(parkMutex); 
+
+    // wait random amount of time to look at photos
+    SWAP waitTime(30, visitorWait);
+
+    // enter gift shop line
+    SWAP semWait(parkMutex);       
+    {
+        SWAP myPark.numInPhotosBuilding--;    
+        SWAP myPark.numInGiftLine++;
     }
     SWAP SEM_SIGNAL(parkMutex); 
 
@@ -407,13 +416,12 @@ int visitorTask(int argc, char* argv[])
     // exit park
     SWAP semWait(parkMutex);       
     {
-        // access inside park variables
+
         SWAP myPark.numInPark--;    
         SWAP myPark.numInGiftShop--;
         SWAP myPark.numExitedPark++;
         SWAP semSignal(roomInGiftShop);
     }
-    // release protect shared memory access
     SWAP semSignal(parkMutex); 
 
     // signal that there is more room in park
@@ -437,7 +445,15 @@ int driverTask(int argc, char* argv[])
         SWAP;
         if (semTryLock(needDriver))
         {
-            SWAP passDriverWaitSem(driverDone, myID);
+
+            SWAP semWait(resourceMutex);
+            SWAP semWait(needDriverSem);
+            SWAP globalSemaphore = driverDone;
+            SWAP globalDriverId = myID;
+            SWAP semSignal(driverResourceReady);
+            SWAP semWait(driverResourceAcquired);
+            SWAP semSignal(resourceMutex);
+
             SWAP semSignal(driverReady);
             SWAP semWait(driverDone);
 
@@ -492,15 +508,4 @@ void waitTime(int max, Semaphore* sem)
     SWAP enQueueDC(time, sem);
 
     SWAP semWait(sem);
-}
-
-void passDriverWaitSem(Semaphore *sem, int driverId)
-{
-    SWAP semWait(resourceMutex);
-    SWAP semWait(needDriverSem);
-    SWAP globalSemaphore = sem;
-    SWAP globalDriverId = driverId;
-    SWAP semSignal(driverResourceReady);
-    SWAP semWait(driverResourceAcquired);
-    SWAP semSignal(resourceMutex);
 }

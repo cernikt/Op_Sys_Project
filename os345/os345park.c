@@ -457,9 +457,9 @@ void drawPark(JPARK *park)
     strcpy(&pk[9][0], "   |* P=#  *              | +  |     * D=# D4=# *     /           \\  +|");
     strcpy(&pk[10][0], "   |* S=#  *              | +  |     ************    /             | +|");
     strcpy(&pk[11][0], "   |********            <<| +   \\                   /              | +|");
-    strcpy(&pk[12][0], "   |                      | +    -------------------               | +|");
-    strcpy(&pk[13][0], "   |                       \\+       /   \\                          | +|");
-    strcpy(&pk[14][0], "   |                        +-------     |                         | +|");
+    strcpy(&pk[12][0], "   |Photos|               | +    -------------------               | +|");
+    strcpy(&pk[13][0], "   |  V=#  /               \\+       /   \\                          | +|");
+    strcpy(&pk[14][0], "   |******|                 +-------     |                         | +|");
     strcpy(&pk[15][0], "   |                        +++++++++++  |                         | +|");
     strcpy(&pk[16][0], "   |                                  +  |                         | +|");
     strcpy(&pk[17][0], "   |                #      #          +   \\                       /  +|");
@@ -524,6 +524,13 @@ void drawPark(JPARK *park)
     SWAP;
     memcpy(&pk[5][23 - strlen(buf)], buf, strlen(buf));
     SWAP;
+
+    // out number in photo building
+    sprintf(buf, "%d", park->numInPhotosBuilding);
+    SWAP;
+    memcpy(&pk[13][8], buf, strlen(buf));
+    SWAP;
+
 
     // out number in gift shop
     sprintf(buf, "%d ", park->numInGiftShop);
@@ -762,7 +769,7 @@ int lostVisitorTask(int argc, char *argv[])
         SEM_WAIT(parkMutex);
         SWAP;
         inPark = myPark.numInTicketLine + myPark.numInMuseumLine + myPark.numInMuseum + myPark.numInCarLine +
-                 myPark.numInCars + myPark.numInGiftLine + myPark.numInGiftShop;
+                 myPark.numInCars + myPark.numInGiftLine + myPark.numInGiftShop + myPark.numInPhotosBuilding;
         SWAP;
 
         if (inPark != myPark.numInPark)
@@ -780,6 +787,7 @@ int lostVisitorTask(int argc, char *argv[])
             printf("\n      numInCars=%d", myPark.numInCars);
             printf("\n  numInGiftLine=%d", myPark.numInGiftLine);
             printf("\n  numInGiftShop=%d", myPark.numInGiftShop);
+            printf("\nnumInPhotosBuilding=%d", myPark.numInPhotosBuilding);
             printf("\n");
 
             assert("Too few in Park!" && (inPark == myPark.numInPark));

@@ -44,6 +44,7 @@ typedef struct jpark
     int numInCars;            // # in tour cars
     int numInGiftLine;        // # in gift shop line
     int numInGiftShop;        // # in gift shop
+    int numInPhotosBuilding;  // # in photo booth
     int drivers[NUM_DRIVERS]; // driver state (-1=T, 0=z, 1=A, 2=B, etc.)
     CAR cars[NUM_CARS];       // cars in park
 } JPARK;
